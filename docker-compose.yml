@@ -9,23 +9,31 @@ services:
       MARIADB_DATABASE: user_db
     ports:
       - "3316:3306"
+    # ✅ 추가: healthcheck로 DB 준비 완료 감지
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # 2. 백엔드 (Spring Boot)
   backend:
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    build: ./backend
+    image: timeleverage/yj-backend:latest   # ✅ 다운받을 image:태그로 변경
     container_name: yj-backend
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker    # ✅ 이 설정이 실제로 적용되어야 함
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy       # ✅ DB 완전 준비 후 시작
 
   # 3. 프론트엔드 (React)
   frontend:
-    build: ./frontend
+    image: timeleverage/yj-frontend:latest  # ✅ 다운받을 image:태그로 변경
     container_name: yj-frontend
     ports:
-      - "63342:80" # 호스트의 63342 포트를 컨테이너의 80 포트와 연결
+      - "63342:80"
     depends_on:
       - backend
